@@ -96,6 +96,7 @@ class Game{
 
 		const options = {
 			object: mesh,
+			nodeRadius: 0.05,
 			speed: 2,
 			app: this,
 			name: 'ball'

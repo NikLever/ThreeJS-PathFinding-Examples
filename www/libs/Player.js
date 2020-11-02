@@ -5,7 +5,7 @@ class Player{
 		const fps = options.fps || 30; //default fps
 		
 		this.assetsPath = options.assetsPath;
-		this.name = options.name | 'Player';
+		this.name = options.name || 'Player';
 		
 		this.animations = {};	
 		
@@ -14,6 +14,8 @@ class Player{
 		this.object = options.object;
 		this.pathLines = new THREE.Object3D();
 		this.pathColor = new THREE.Color(0xFFFFFF);
+		this.nodeRadius = (options.nodeRadius) ? options.nodeRadius : 0.2;
+		
 		options.app.scene.add(this.pathLines);
 		
 		this.npc = options.npc;
@@ -58,84 +60,71 @@ class Player{
         
         if (this.pathfinder===undefined){
             this.calculatedPath = [ pt.clone() ];
-            //Calculate target direction
-            pt.y = player.position.y;
-            const quaternion = player.quaternion.clone();
-            player.lookAt(pt);
-            this.quaternion = player.quaternion.clone();
-            player.quaternion.copy(quaternion); 
-            this.action = 'walk';
+            this.setTargetDirection();
             return;
         }
-        
-		//console.log(`New path to ${pt.x.toFixed(1)}, ${pt.y.toFixed(2)}, ${pt.z.toFixed(2)}`);	
-
-		const targetGroup = this.pathfinder.getGroup(this.ZONE, pt);
-		const closestTargetNode = this.pathfinder.getClosestNode(pt, this.ZONE, targetGroup);
-		
+        		
 		// Calculate a path to the target and store it
 		this.calculatedPath = this.pathfinder.findPath(player.position, pt, this.ZONE, this.navMeshGroup);
-
-		const self = this;
 		
 		if (this.calculatedPath && this.calculatedPath.length) {
 			this.action = 'walk';
 			
-			const pt = this.calculatedPath[0].clone();
-			pt.y = player.position.y;
-			const quaternion = player.quaternion.clone();
-			player.lookAt(pt);
-			this.quaternion = player.quaternion.clone();
-			player.quaternion.copy(quaternion);
+			this.setTargetDirection();
 			
 			if (this.app.debug.showPath && !this.npc){
-				if (this.pathLines) this.app.scene.remove(this.pathLines);
-
-				const material = new THREE.LineBasicMaterial({
-					color: self.pathColor,
-					linewidth: 2
-				});
-
-				let geometry = new THREE.Geometry();
-				geometry.vertices.push(player.position);
-
-				// Draw debug lines
-				this.calculatedPath.forEach( function(vertex){
-					geometry.vertices.push(vertex.clone().add(new THREE.Vector3(0, self.app.debug.offset, 0)));
-				});
-
-				this.pathLines = new THREE.Line( geometry, material );
-				this.app.scene.add( this.pathLines );
-
-				// Draw debug spheres except the last one. Also, add the player position.
-				const debugPath = [player.position].concat(this.calculatedPath);
-
-				debugPath.forEach(function( vertex ){
-					geometry = new THREE.SphereBufferGeometry( 0.2 );
-					const material = new THREE.MeshBasicMaterial( {color: self.pathColor} );
-					const node = new THREE.Mesh( geometry, material );
-					node.position.copy(vertex);
-					node.position.y += self.app.debug.offset;
-					self.pathLines.add( node );
-				});
+				this.showPathLines();
 			}
 		} else {
 			this.action = 'idle';
-			
-            if (self.pathfinder){
-                const closestPlayerNode = self.pathfinder.getClosestNode(player.position, this.ZONE, this.navMeshGroup);
-                const clamped = new THREE.Vector3();
-                this.pathfinder.clampStep(
-                    player.position, 
-                    pt.clone(), 
-                    closestPlayerNode, 
-                    this.ZONE, 
-                    this.navMeshGroup, 
-                    clamped);
-            }
-            
 			if (this.pathLines) this.app.scene.remove(this.pathLines);
 		}
+	}
+	
+	setTargetDirection(){
+		const player = this.object;
+		const pt = this.calculatedPath[0].clone();
+		pt.y = player.position.y;
+		const quaternion = player.quaternion.clone();
+		player.lookAt(pt);
+		this.quaternion = player.quaternion.clone();
+		player.quaternion.copy(quaternion);
+	}
+	
+	showPathLines(){
+		if (this.pathLines) this.app.scene.remove(this.pathLines);
+
+		const material = new THREE.LineBasicMaterial({
+			color: this.pathColor,
+			linewidth: 2
+		});
+
+		const player = this.object;
+		const self = this;
+		
+		const geometry = new THREE.Geometry();
+		geometry.vertices.push(player.position);
+
+		// Draw debug lines
+		this.calculatedPath.forEach( function(vertex){
+			geometry.vertices.push(vertex.clone().add(new THREE.Vector3(0, self.app.debug.offset, 0)));
+		});
+
+		this.pathLines = new THREE.Line( geometry, material );
+		this.app.scene.add( this.pathLines );
+
+		// Draw debug spheres except the last one. Also, add the player position.
+		const debugPath = [player.position].concat(this.calculatedPath);
+		const geo = new THREE.SphereBufferGeometry( this.nodeRadius );
+		const mat = new THREE.MeshBasicMaterial( {color: this.pathColor} );
+		const offset = this.app.debug.offset | 0;
+		
+		debugPath.forEach(function( vertex ){
+			const node = new THREE.Mesh( geo, mat );
+			node.position.copy(vertex);
+			node.position.y += offset;
+			self.pathLines.add( node );
+		});
 	}
 	
 	set action(name){
@@ -195,12 +184,7 @@ class Player{
                         this.action = 'idle';
                     }
                 }else{
-                    const pt = this.calculatedPath[0].clone();
-                    pt.y = player.position.y;
-                    const quaternion = player.quaternion.clone();
-                    player.lookAt(pt);
-                    this.quaternion = player.quaternion.clone();
-                    player.quaternion.copy(quaternion); 
+                    this.setTargetDirection();
                 }
             }
         }else{
