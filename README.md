@@ -11,3 +11,10 @@ Learn how to use Don McCurdys Pathfinding library and Three.JS to constrain an a
 ## Live examples
 - [Simple](https://niklever.github.io/three/pathfinding/simple/)
 - [Complex](https://niklever.github.io/three/pathfinding/dungeon/)
+
+## Links
+- [My courses](http://niklever.com/courses)
+- [FB Three.JS Group](https://www.facebook.com/groups/nikthreejs)
+- [Twitter](https://twitter.com/NikLever)
+- [YouTube Channel](https://www.youtube.com/channel/UCUlSAoLd9N2AEeT08wqnpyg?view_as=subscriber)
+- [nik.j.lever@gmail.com](mailto:nik.j.lever@gmail.com)
